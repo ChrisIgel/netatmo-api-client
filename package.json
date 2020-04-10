@@ -1,0 +1,41 @@
+{
+  "name": "netatmo-api-client",
+  "description": "Client for the Netatmo API",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Chris Igel",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChrisIgel/netatmo-api-client.git"
+  },
+  "keywords": [
+    "Netatmo"
+  ],
+  "scripts": {
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint . --ext .ts",
+    "build": "tsc",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "axios": "^0.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^13.11.0",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
+    "@typescript-eslint/parser": "^2.26.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "prettier": "^2.0.2",
+    "typescript": "^3.8.3"
+  }
+}
