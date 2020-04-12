@@ -11,6 +11,9 @@
   "keywords": [
     "Netatmo"
   ],
+  "engines": {
+    "node": ">=12"
+  },
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint . --ext .ts",

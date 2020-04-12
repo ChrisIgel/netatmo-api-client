@@ -13,6 +13,7 @@ import {
   WindUnit,
 } from './domain/administrative';
 import { ModuleType } from './domain/modules/base-module';
+import { Capability } from './domain/modules/capabilities/capability.enum';
 import { PressureData } from './domain/modules/capabilities/pressure';
 import { RainData } from './domain/modules/capabilities/rain';
 import { TemperatureData } from './domain/modules/capabilities/temperature';
@@ -27,14 +28,14 @@ import { WirelessModule } from './domain/modules/wireless-module';
 import { StationData } from './domain/station-data';
 import { User } from './domain/user';
 
-export class DomainMapper {
-  public static mapToDomain(stationDataDto: StationDataDto): StationData {
+export class StationDataMapper {
+  public static dtoToDomain(stationDataDto: StationDataDto): StationData {
     const user: User = {
       mail: stationDataDto.user.mail,
-      administrative: DomainMapper.mapAdministrative(stationDataDto.user.administrative),
+      administrative: StationDataMapper.mapAdministrative(stationDataDto.user.administrative),
     };
 
-    const devices: MainModule[] = stationDataDto.devices.map(DomainMapper.mapDeviceDtoToMainModule);
+    const devices: MainModule[] = stationDataDto.devices.map(StationDataMapper.mapDeviceDtoToMainModule);
 
     return { devices, user };
   }
@@ -61,27 +62,34 @@ export class DomainMapper {
         longitude: dto.place.location[0],
         latitude: dto.place.location[1],
       },
+      capabilities: [
+        Capability.TEMPERATURE,
+        Capability.CO2,
+        Capability.HUMIDITY,
+        Capability.NOISE,
+        Capability.PRESSURE,
+      ],
       measureTime: new Date(dto.dashboard_data.time_utc * 1000),
       readOnly: dto.read_only,
-      temperature: DomainMapper.mapTemperature(dto.dashboard_data),
+      temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
       co2: dto.dashboard_data.CO2,
       humidity: dto.dashboard_data.Humidity,
       noise: dto.dashboard_data.Noise,
-      pressure: DomainMapper.mapPressure(dto.dashboard_data),
-      modules: dto.modules.map(DomainMapper.mapModule).filter((m) => m !== null) as WirelessModule[],
+      pressure: StationDataMapper.mapPressure(dto.dashboard_data),
+      modules: dto.modules.map(StationDataMapper.mapModule).filter((m) => m !== null) as WirelessModule[],
     };
   }
 
   private static mapModule(dto: ModuleDto): WirelessModule | null {
     switch (dto.type) {
       case 'NAModule1':
-        return DomainMapper.mapOutdoorModule(dto);
+        return StationDataMapper.mapOutdoorModule(dto);
       case 'NAModule2':
-        return DomainMapper.mapWindModule(dto);
+        return StationDataMapper.mapWindModule(dto);
       case 'NAModule3':
-        return DomainMapper.mapRainModule(dto);
+        return StationDataMapper.mapRainModule(dto);
       case 'NAModule4':
-        return DomainMapper.mapIndoorModule(dto);
+        return StationDataMapper.mapIndoorModule(dto);
       default:
         return null;
     }
@@ -90,6 +98,7 @@ export class DomainMapper {
   private static mapWirelessModule(dto: ModuleDto): WirelessModule {
     return {
       id: dto._id,
+      capabilities: [Capability.BATTERY],
       moduleName: dto.module_name,
       firmware: dto.firmware,
       reachable: dto.reachable,
@@ -103,38 +112,54 @@ export class DomainMapper {
   }
 
   private static mapOutdoorModule(dto: ModuleDto): OutdoorModule {
-    return {
-      ...DomainMapper.mapWirelessModule(dto),
+    const module = {
+      ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.OUTDOOR_MODULE,
       humidity: dto.dashboard_data.Humidity,
-      temperature: DomainMapper.mapTemperature(dto.dashboard_data),
+      temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
     };
+
+    module.capabilities.push(Capability.HUMIDITY, Capability.TEMPERATURE);
+
+    return module;
   }
 
   private static mapWindModule(dto: ModuleDto): WindModule {
-    return {
-      ...DomainMapper.mapWirelessModule(dto),
+    const module = {
+      ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.WIND_MODULE,
-      wind: DomainMapper.mapWind(dto.dashboard_data),
+      wind: StationDataMapper.mapWind(dto.dashboard_data),
     };
+
+    module.capabilities.push(Capability.WIND);
+
+    return module;
   }
 
   private static mapRainModule(dto: ModuleDto): RainModule {
-    return {
-      ...DomainMapper.mapWirelessModule(dto),
+    const module = {
+      ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.RAIN_MODULE,
-      rain: DomainMapper.mapRain(dto.dashboard_data),
+      rain: StationDataMapper.mapRain(dto.dashboard_data),
     };
+
+    module.capabilities.push(Capability.RAIN);
+
+    return module;
   }
 
   private static mapIndoorModule(dto: ModuleDto): IndoorModule {
-    return {
-      ...DomainMapper.mapWirelessModule(dto),
+    const module = {
+      ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.INDOOR_MODULE,
       co2: dto.dashboard_data.CO2,
       humidity: dto.dashboard_data.Humidity,
-      temperature: DomainMapper.mapTemperature(dto.dashboard_data),
+      temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
     };
+
+    module.capabilities.push(Capability.CO2, Capability.HUMIDITY, Capability.TEMPERATURE);
+
+    return module;
   }
 
   private static mapTemperature(data: DashboardDto): TemperatureData {
@@ -144,7 +169,7 @@ export class DomainMapper {
       max: data.max_temp,
       dateMin: new Date(data.date_min_temp * 1000),
       dateMax: new Date(data.date_max_temp * 1000),
-      trend: DomainMapper.mapTrend(data.temp_trend),
+      trend: StationDataMapper.mapTrend(data.temp_trend),
     };
   }
 
@@ -172,7 +197,7 @@ export class DomainMapper {
     return {
       current: data.Pressure,
       absolute: data.AbsolutePressure,
-      trend: DomainMapper.mapTrend(data.pressure_trend),
+      trend: StationDataMapper.mapTrend(data.pressure_trend),
     };
   }
 
@@ -181,10 +206,10 @@ export class DomainMapper {
       country: dto.country,
       locale: dto.lang,
       regionalLocale: dto.reg_locale,
-      pressureUnit: DomainMapper.mapPressureUnit(dto.pressureunit),
-      systemOfMeasurement: DomainMapper.mapSystemOfMeasurement(dto.unit),
-      windUnit: DomainMapper.mapWindUnit(dto.windunit),
-      feelLikeTemperatureAlgorithm: DomainMapper.mapFeelLikeTemperatureAlgorithm(dto.feel_like_algo),
+      pressureUnit: StationDataMapper.mapPressureUnit(dto.pressureunit),
+      systemOfMeasurement: StationDataMapper.mapSystemOfMeasurement(dto.unit),
+      windUnit: StationDataMapper.mapWindUnit(dto.windunit),
+      feelLikeTemperatureAlgorithm: StationDataMapper.mapFeelLikeTemperatureAlgorithm(dto.feel_like_algo),
     };
   }
 
