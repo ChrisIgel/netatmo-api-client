@@ -63,7 +63,7 @@ export class NetatmoApiClient {
   }
 
   private async refreshTokens(): Promise<void> {
-    if (Date.now() - 60 * 1000 > this.expiration) {
+    if (Date.now() > this.expiration - 60 * 1000) {
       this.logger.log('Refreshing token...');
       const payload = {
         /* eslint-disable @typescript-eslint/camelcase */
