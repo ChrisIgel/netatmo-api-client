@@ -189,7 +189,7 @@ export class StationDataMapper {
         dateMaxWindStrength: new Date(data.date_max_wind_str * 1000),
       };
     }
-    
+
     return undefined;
   }
 
