@@ -1,7 +1,7 @@
 import { Trend } from './trend.enum';
 
 export interface ReadsTemperature {
-  temperature: TemperatureData;
+  temperature?: TemperatureData;
 }
 
 export interface TemperatureData {

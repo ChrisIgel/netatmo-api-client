@@ -8,7 +8,7 @@ export interface BaseModule {
   firmware: number;
   reachable: boolean;
   lastSetup: Date;
-  measureTime: Date;
+  measureTime?: Date;
 }
 
 export enum ModuleType {

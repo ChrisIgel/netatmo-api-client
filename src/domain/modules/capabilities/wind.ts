@@ -1,5 +1,5 @@
 export interface ReadsWind {
-  wind: WindData;
+  wind?: WindData;
 }
 
 export interface WindData {

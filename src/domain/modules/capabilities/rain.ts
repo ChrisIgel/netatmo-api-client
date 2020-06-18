@@ -1,5 +1,5 @@
 export interface ReadsRain {
-  rain: RainData;
+  rain?: RainData;
 }
 
 export interface RainData {

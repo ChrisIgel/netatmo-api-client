@@ -1,3 +1,3 @@
 export interface ReadsCO2 {
-  co2: number;
+  co2?: number;
 }

@@ -103,7 +103,7 @@ export class StationDataMapper {
       firmware: dto.firmware,
       reachable: dto.reachable,
       lastSetup: new Date(dto.last_setup * 1000),
-      measureTime: new Date(dto.dashboard_data.time_utc * 1000),
+      measureTime: dto.dashboard_data ? new Date(dto.dashboard_data.time_utc * 1000) : undefined,
       batteryPercent: dto.battery_percent,
       batteryVp: dto.battery_vp,
       lastSeen: new Date(dto.last_seen * 1000),
@@ -112,10 +112,10 @@ export class StationDataMapper {
   }
 
   private static mapOutdoorModule(dto: ModuleDto): OutdoorModule {
-    const module = {
+    const module: OutdoorModule = {
       ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.OUTDOOR_MODULE,
-      humidity: dto.dashboard_data.Humidity,
+      humidity: dto.dashboard_data ? dto.dashboard_data.Humidity : undefined,
       temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
     };
 
@@ -125,7 +125,7 @@ export class StationDataMapper {
   }
 
   private static mapWindModule(dto: ModuleDto): WindModule {
-    const module = {
+    const module: WindModule = {
       ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.WIND_MODULE,
       wind: StationDataMapper.mapWind(dto.dashboard_data),
@@ -137,7 +137,7 @@ export class StationDataMapper {
   }
 
   private static mapRainModule(dto: ModuleDto): RainModule {
-    const module = {
+    const module: RainModule = {
       ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.RAIN_MODULE,
       rain: StationDataMapper.mapRain(dto.dashboard_data),
@@ -149,11 +149,11 @@ export class StationDataMapper {
   }
 
   private static mapIndoorModule(dto: ModuleDto): IndoorModule {
-    const module = {
+    const module: IndoorModule = {
       ...StationDataMapper.mapWirelessModule(dto),
       type: ModuleType.INDOOR_MODULE,
-      co2: dto.dashboard_data.CO2,
-      humidity: dto.dashboard_data.Humidity,
+      co2: dto.dashboard_data ? dto.dashboard_data.CO2 : undefined,
+      humidity: dto.dashboard_data ? dto.dashboard_data.Humidity : undefined,
       temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
     };
 
@@ -162,35 +162,47 @@ export class StationDataMapper {
     return module;
   }
 
-  private static mapTemperature(data: DashboardDto): TemperatureData {
-    return {
-      current: data.Temperature,
-      min: data.min_temp,
-      max: data.max_temp,
-      dateMin: new Date(data.date_min_temp * 1000),
-      dateMax: new Date(data.date_max_temp * 1000),
-      trend: StationDataMapper.mapTrend(data.temp_trend),
-    };
+  private static mapTemperature(data: DashboardDto): TemperatureData | undefined {
+    if (data) {
+      return {
+        current: data.Temperature,
+        min: data.min_temp,
+        max: data.max_temp,
+        dateMin: new Date(data.date_min_temp * 1000),
+        dateMax: new Date(data.date_max_temp * 1000),
+        trend: StationDataMapper.mapTrend(data.temp_trend),
+      };
+    }
+
+    return undefined;
   }
 
-  private static mapWind(data: DashboardDto): WindData {
-    return {
-      windStrength: data.WindStrength,
-      windAngle: data.WindAngle,
-      gustStrength: data.GustStrength,
-      gustAngle: data.GustAngle,
-      maxWindStrength: data.max_wind_str,
-      maxWindAngle: data.max_wind_angle,
-      dateMaxWindStrength: new Date(data.date_max_wind_str * 1000),
-    };
+  private static mapWind(data: DashboardDto): WindData | undefined {
+    if (data) {
+      return {
+        windStrength: data.WindStrength,
+        windAngle: data.WindAngle,
+        gustStrength: data.GustStrength,
+        gustAngle: data.GustAngle,
+        maxWindStrength: data.max_wind_str,
+        maxWindAngle: data.max_wind_angle,
+        dateMaxWindStrength: new Date(data.date_max_wind_str * 1000),
+      };
+    }
+    
+    return undefined;
   }
 
-  private static mapRain(data: DashboardDto): RainData {
-    return {
-      current: data.Rain,
-      lastHour: data.sum_rain_1,
-      last24Hours: data.sum_rain_24,
-    };
+  private static mapRain(data: DashboardDto): RainData | undefined {
+    if (data) {
+      return {
+        current: data.Rain,
+        lastHour: data.sum_rain_1,
+        last24Hours: data.sum_rain_24,
+      };
+    }
+
+    return undefined;
   }
 
   private static mapPressure(data: DashboardDto): PressureData {
