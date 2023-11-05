@@ -17,6 +17,7 @@
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint . --ext .ts",
+    "test": "npm version",
     "build": "tsc",
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
