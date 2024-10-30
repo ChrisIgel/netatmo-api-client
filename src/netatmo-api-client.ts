@@ -102,6 +102,14 @@ export class NetatmoApiClient {
     this.logger.log(`Got new access token expiring at ${new Date(this.expiration).toLocaleString()}`);
   }
 
+  public getTokens(): { accessToken: string; refreshToken: string, expiration: number } {
+    return {
+      accessToken: this.accessToken,
+      refreshToken: this.refreshToken,
+      expiration: this.expiration
+    };
+  }
+
   public async getStationData(favorites = false): Promise<StationData> {
     await this.refreshTokens();
 
