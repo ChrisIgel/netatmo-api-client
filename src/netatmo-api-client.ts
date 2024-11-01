@@ -68,7 +68,7 @@ export class NetatmoApiClient {
     this.expiration = Date.now() + 60 * 1000;
   }
 
-  private async refreshTokens(): Promise<void> {
+  public async refreshTokens(): Promise<void> {
     if (Date.now() > this.expiration - 60 * 1000) {
       this.logger.log('Refreshing token...');
       const payload = {
