@@ -68,7 +68,7 @@ export class NetatmoApiClient {
     this.expiration = Date.now() + 60 * 1000;
   }
 
-  private async refreshTokens(): Promise<void> {
+  public async refreshTokens(): Promise<void> {
     if (Date.now() > this.expiration - 60 * 1000) {
       this.logger.log('Refreshing token...');
       const payload = {
@@ -100,6 +100,14 @@ export class NetatmoApiClient {
     this.expiration = Date.now() + res.expires_in * 1000;
 
     this.logger.log(`Got new access token expiring at ${new Date(this.expiration).toLocaleString()}`);
+  }
+
+  public getTokens(): { accessToken: string; refreshToken: string, expiration: number } {
+    return {
+      accessToken: this.accessToken,
+      refreshToken: this.refreshToken,
+      expiration: this.expiration
+    };
   }
 
   public async getStationData(favorites = false): Promise<StationData> {
