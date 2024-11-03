@@ -3,8 +3,6 @@ import querystring from 'querystring';
 import { BaseTokenResponse } from './api-dtos/base-token-response';
 import { GetMeasureResponse } from './api-dtos/get-measure-response';
 import { GetStationDataResponse } from './api-dtos/get-station-data-response';
-import { NetatmoOauthScope } from './api-dtos/netatmo-oauth-scope.enum';
-import { PasswordGrantResponse } from './api-dtos/password-grant-response';
 import { BaseModule, Measurements } from './domain';
 import { StationData } from './domain/station-data';
 import { DefaultLogger, Logger } from './logger';
@@ -31,41 +29,18 @@ export class NetatmoApiClient {
     });
   }
 
-  public async login(
-    username: string,
-    password: string,
-    scopes: NetatmoOauthScope[] = [NetatmoOauthScope.READ_STATION]
-  ): Promise<void> {
-    this.logger.log('Logging in...');
-
-    const payload = {
-      /* eslint-disable @typescript-eslint/camelcase */
-      grant_type: 'password',
-      client_id: this.clientId,
-      client_secret: this.clientSecret,
-      /* eslint-enable @typescript-eslint/camelcase */
-      username: username,
-      password: password,
-      scope: scopes.join(' '),
-    };
-
-    const res = await this.http.post<PasswordGrantResponse>(
-      `${NetatmoApiClient.NETATMO_BASE_URL}/oauth2/token`,
-      querystring.stringify(payload),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
-
-    this.saveTokens(res.data);
-  }
-
   public setTokens(accessToken: string, refreshToken: string): void {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.expiration = Date.now() + 60 * 1000;
+  }
+
+  public getTokens(): { accessToken: string; refreshToken: string; expiration: number } {
+    return {
+      accessToken: this.accessToken,
+      refreshToken: this.refreshToken,
+      expiration: this.expiration,
+    };
   }
 
   public async refreshTokens(): Promise<void> {
@@ -100,14 +75,6 @@ export class NetatmoApiClient {
     this.expiration = Date.now() + res.expires_in * 1000;
 
     this.logger.log(`Got new access token expiring at ${new Date(this.expiration).toLocaleString()}`);
-  }
-
-  public getTokens(): { accessToken: string; refreshToken: string, expiration: number } {
-    return {
-      accessToken: this.accessToken,
-      refreshToken: this.refreshToken,
-      expiration: this.expiration
-    };
   }
 
   public async getStationData(favorites = false): Promise<StationData> {
