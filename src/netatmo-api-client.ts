@@ -11,6 +11,7 @@ import { StationDataMapper } from './station-data-mapper';
 
 export class NetatmoApiClient {
   private static readonly NETATMO_BASE_URL = 'https://api.netatmo.com';
+  private static readonly DEFAULT_TOKEN_EXPIRATION = 1 * 60 * 60 * 1000; // default is 3 hours but we use 1 hour to be safe
   private readonly http: AxiosInstance;
 
   private accessToken!: string;
@@ -29,10 +30,14 @@ export class NetatmoApiClient {
     });
   }
 
-  public setTokens(accessToken: string, refreshToken: string): void {
+  public setTokens(
+    accessToken: string,
+    refreshToken: string,
+    expirationInMs: number = NetatmoApiClient.DEFAULT_TOKEN_EXPIRATION
+  ): void {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    this.expiration = Date.now() + 60 * 1000;
+    this.expiration = Date.now() + expirationInMs;
   }
 
   public getTokens(): { accessToken: string; refreshToken: string; expiration: number } {
@@ -44,6 +49,7 @@ export class NetatmoApiClient {
   }
 
   public async refreshTokens(): Promise<void> {
+    // refresh the token 1 minute early to be safe
     if (Date.now() > this.expiration - 60 * 1000) {
       this.logger.log('Refreshing token...');
       const payload = {
