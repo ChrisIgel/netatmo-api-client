@@ -29,7 +29,7 @@ export interface DeviceDto extends BaseDeviceDto {
   co2_calibrating: boolean;
   station_name: string;
   place: PlaceDto;
-  read_only: boolean;
+  read_only?: boolean;
   modules: ModuleDto[];
 }
 

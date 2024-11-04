@@ -14,10 +14,11 @@ export interface MainModule extends BaseModule, ReadsTemperature, ReadsCO2, Read
   dateSetup: Date;
   lastStatusUpdate: Date;
   lastUpgrade: Date;
+  /** value between 0 (bad) and 30 (good) */
   wifiStatus: number;
   co2Calibrating: boolean;
   place: Place;
-  readOnly: boolean;
+  readOnly?: boolean;
   measureTime: Date;
   modules: BaseModule[];
 }

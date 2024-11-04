@@ -2,7 +2,7 @@ import { Capability } from './capabilities/capability.enum';
 
 export interface BaseModule {
   id: string;
-  type?: ModuleType;
+  type: ModuleType;
   capabilities: Capability[];
   moduleName: string;
   firmware: number;

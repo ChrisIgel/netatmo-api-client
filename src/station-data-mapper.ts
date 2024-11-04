@@ -95,7 +95,7 @@ export class StationDataMapper {
     }
   }
 
-  private static mapWirelessModule(dto: ModuleDto): WirelessModule {
+  private static mapWirelessModule(dto: ModuleDto): Omit<WirelessModule, 'type'> {
     return {
       id: dto._id,
       capabilities: [Capability.BATTERY],
