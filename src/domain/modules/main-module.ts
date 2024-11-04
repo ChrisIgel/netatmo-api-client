@@ -19,6 +19,6 @@ export interface MainModule extends BaseModule, ReadsTemperature, ReadsCO2, Read
   co2Calibrating: boolean;
   place: Place;
   readOnly?: boolean;
-  measureTime: Date;
+  measureTime?: Date;
   modules: BaseModule[];
 }

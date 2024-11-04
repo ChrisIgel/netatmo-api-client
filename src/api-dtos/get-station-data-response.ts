@@ -16,7 +16,7 @@ interface BaseDeviceDto {
   module_name: string;
   data_type: string[];
   firmware: number;
-  dashboard_data: DashboardDto;
+  dashboard_data?: DashboardDto;
   reachable: boolean;
   last_setup: number;
 }

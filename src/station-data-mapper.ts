@@ -69,12 +69,12 @@ export class StationDataMapper {
         Capability.NOISE,
         Capability.PRESSURE,
       ],
-      measureTime: new Date(dto.dashboard_data.time_utc * 1000),
+      measureTime: dto.dashboard_data && new Date(dto.dashboard_data.time_utc * 1000),
       readOnly: dto.read_only,
       temperature: StationDataMapper.mapTemperature(dto.dashboard_data),
-      co2: dto.dashboard_data.CO2,
-      humidity: dto.dashboard_data.Humidity,
-      noise: dto.dashboard_data.Noise,
+      co2: dto.dashboard_data?.CO2,
+      humidity: dto.dashboard_data?.Humidity,
+      noise: dto.dashboard_data?.Noise,
       pressure: StationDataMapper.mapPressure(dto.dashboard_data),
       modules: dto.modules.map(StationDataMapper.mapModule).filter((m) => m !== null) as WirelessModule[],
     };
@@ -162,50 +162,46 @@ export class StationDataMapper {
     return module;
   }
 
-  private static mapTemperature(data: DashboardDto): TemperatureData | undefined {
-    if (data) {
-      return {
-        current: data.Temperature,
-        min: data.min_temp,
-        max: data.max_temp,
-        dateMin: new Date(data.date_min_temp * 1000),
-        dateMax: new Date(data.date_max_temp * 1000),
-        trend: StationDataMapper.mapTrend(data.temp_trend),
-      };
-    }
+  private static mapTemperature(data?: DashboardDto): TemperatureData | undefined {
+    if (!data) return undefined;
 
-    return undefined;
+    return {
+      current: data.Temperature,
+      min: data.min_temp,
+      max: data.max_temp,
+      dateMin: new Date(data.date_min_temp * 1000),
+      dateMax: new Date(data.date_max_temp * 1000),
+      trend: StationDataMapper.mapTrend(data.temp_trend),
+    };
   }
 
-  private static mapWind(data: DashboardDto): WindData | undefined {
-    if (data) {
-      return {
-        windStrength: data.WindStrength,
-        windAngle: data.WindAngle,
-        gustStrength: data.GustStrength,
-        gustAngle: data.GustAngle,
-        maxWindStrength: data.max_wind_str,
-        maxWindAngle: data.max_wind_angle,
-        dateMaxWindStrength: new Date(data.date_max_wind_str * 1000),
-      };
-    }
+  private static mapWind(data?: DashboardDto): WindData | undefined {
+    if (!data) return undefined;
 
-    return undefined;
+    return {
+      windStrength: data.WindStrength,
+      windAngle: data.WindAngle,
+      gustStrength: data.GustStrength,
+      gustAngle: data.GustAngle,
+      maxWindStrength: data.max_wind_str,
+      maxWindAngle: data.max_wind_angle,
+      dateMaxWindStrength: new Date(data.date_max_wind_str * 1000),
+    };
   }
 
-  private static mapRain(data: DashboardDto): RainData | undefined {
-    if (data) {
-      return {
-        current: data.Rain,
-        lastHour: data.sum_rain_1,
-        last24Hours: data.sum_rain_24,
-      };
-    }
+  private static mapRain(data?: DashboardDto): RainData | undefined {
+    if (!data) return undefined;
 
-    return undefined;
+    return {
+      current: data.Rain,
+      lastHour: data.sum_rain_1,
+      last24Hours: data.sum_rain_24,
+    };
   }
 
-  private static mapPressure(data: DashboardDto): PressureData {
+  private static mapPressure(data?: DashboardDto): PressureData | undefined {
+    if (!data) return undefined;
+
     return {
       current: data.Pressure,
       absolute: data.AbsolutePressure,
