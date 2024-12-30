@@ -9,6 +9,16 @@ import { DefaultLogger, Logger } from './logger';
 import { MeasurementsMapper } from './measurements-mapper';
 import { StationDataMapper } from './station-data-mapper';
 
+export class NetatmoApiError extends Error {
+  constructor(
+    public readonly message: string,
+    public readonly status: number,
+    public readonly data: any
+  ) {
+    super();
+  }
+}
+
 export class NetatmoApiClient {
   private static readonly NETATMO_BASE_URL = 'https://api.netatmo.com';
   private static readonly DEFAULT_TOKEN_EXPIRATION = 1 * 60 * 60 * 1000; // default is 3 hours but we use 1 hour to be safe
@@ -99,7 +109,18 @@ export class NetatmoApiClient {
       return StationDataMapper.dtoToDomain(res.data.body);
     } catch (e) {
       this.logError(e);
-      throw new Error();
+      if (axios.isAxiosError(e) && e.response) {
+        throw new NetatmoApiError(
+          'Error getting stations data - axios',
+          e.response.status,
+          e.response.data
+        );
+      }
+      throw new NetatmoApiError(
+        'Error getting stations data',
+        500,
+        e
+      );
     }
   }
 
@@ -135,7 +156,18 @@ export class NetatmoApiClient {
       return MeasurementsMapper.dtoToDomain(res.data.body, module.capabilities);
     } catch (e) {
       this.logError(e);
-      throw new Error();
+      if (axios.isAxiosError(e) && e.response) {
+        throw new NetatmoApiError(
+          'Error getting measure - axios',
+          e.response.status,
+          e.response.data
+        );
+      }
+      throw new NetatmoApiError(
+        'Error getting measure',
+        500,
+        e
+      );
     }
   }
 
