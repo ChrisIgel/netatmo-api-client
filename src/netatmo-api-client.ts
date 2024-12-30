@@ -82,6 +82,8 @@ export class NetatmoApiClient {
       );
 
       this.saveTokens(res.data);
+    } else {
+      this.logger.log('Not refreshing token with calculation: '+(Date.now() > this.expiration - 60 * 1000)+ 'and '+Date.now()+' > '+ (this.expiration - 60 * 1000));
     }
   }
 
