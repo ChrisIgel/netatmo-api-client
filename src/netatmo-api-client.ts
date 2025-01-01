@@ -1,10 +1,11 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import querystring from 'querystring';
 import { BaseTokenResponse } from './api-dtos/base-token-response';
 import { GetMeasureResponse } from './api-dtos/get-measure-response';
 import { GetStationDataResponse } from './api-dtos/get-station-data-response';
 import { BaseModule, Measurements } from './domain';
 import { StationData } from './domain/station-data';
+import { NetatmoApiError } from './errors/api-error';
 import { DefaultLogger, Logger } from './logger';
 import { MeasurementsMapper } from './measurements-mapper';
 import { StationDataMapper } from './station-data-mapper';
@@ -16,7 +17,7 @@ export class NetatmoApiClient {
 
   private accessToken!: string;
   private refreshToken!: string;
-  private expiration!: number;
+  private expirationTimestamp!: number;
 
   constructor(
     private readonly clientId: string,
@@ -37,20 +38,23 @@ export class NetatmoApiClient {
   ): void {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    this.expiration = Date.now() + expirationInMs;
+    this.expirationTimestamp = Date.now() + expirationInMs;
   }
 
   public getTokens(): { accessToken: string; refreshToken: string; expiration: number } {
     return {
       accessToken: this.accessToken,
       refreshToken: this.refreshToken,
-      expiration: this.expiration,
+      expiration: this.expirationTimestamp,
     };
   }
 
   public async refreshTokens(): Promise<void> {
     // refresh the token 1 minute early to be safe
-    if (Date.now() > this.expiration - 60 * 1000) {
+    const expirationTimestampMinusOneMinute = this.expirationTimestamp - 60 * 1000;
+    const tokenIsAboutToExpire = Date.now() > expirationTimestampMinusOneMinute;
+
+    if (tokenIsAboutToExpire) {
       this.logger.log('Refreshing token...');
       const payload = {
         /* eslint-disable @typescript-eslint/camelcase */
@@ -72,35 +76,36 @@ export class NetatmoApiClient {
       );
 
       this.saveTokens(res.data);
+    } else {
+      this.logger.log(
+        `Token is still valid: "${new Date().toLocaleString()}" (now) is after "${new Date(
+          expirationTimestampMinusOneMinute
+        ).toLocaleString()} (token expiry)"`
+      );
     }
   }
 
   private saveTokens(res: BaseTokenResponse): void {
     this.accessToken = res.access_token;
     this.refreshToken = res.refresh_token;
-    this.expiration = Date.now() + res.expires_in * 1000;
+    this.expirationTimestamp = Date.now() + res.expires_in * 1000;
 
-    this.logger.log(`Got new access token expiring at ${new Date(this.expiration).toLocaleString()}`);
+    this.logger.log(`Got new access token expiring at ${new Date(this.expirationTimestamp).toLocaleString()}`);
   }
 
   public async getStationData(favorites = false): Promise<StationData> {
+    this.logger.log('Requesting station data');
     await this.refreshTokens();
 
-    try {
-      const res = await this.http.get<GetStationDataResponse>(
-        `${NetatmoApiClient.NETATMO_BASE_URL}/api/getstationsdata`,
-        {
-          params: {
-            get_favorites: favorites, // eslint-disable-line @typescript-eslint/camelcase
-          },
-        }
-      );
+    const res = await this.wrapAxiosErrors('get station data', () =>
+      this.http.get<GetStationDataResponse>(`${NetatmoApiClient.NETATMO_BASE_URL}/api/getstationsdata`, {
+        params: {
+          get_favorites: favorites, // eslint-disable-line @typescript-eslint/camelcase
+        },
+      })
+    );
 
-      return StationDataMapper.dtoToDomain(res.data.body);
-    } catch (e) {
-      this.logError(e);
-      throw new Error();
-    }
+    return StationDataMapper.dtoToDomain(res.data.body);
   }
 
   public async getMeasure(
@@ -112,6 +117,10 @@ export class NetatmoApiClient {
     limit = 1024,
     realTime = true
   ): Promise<Measurements> {
+    this.logger.log(
+      `Requesting measure for station ${stationId} and module ${module.id} from ${dateBegin} until ${dateEnd}`
+    );
+
     await this.refreshTokens();
 
     const payload = {
@@ -128,21 +137,40 @@ export class NetatmoApiClient {
       /* eslint-enable @typescript-eslint/camelcase */
     };
 
-    try {
-      const res = await this.http.get<GetMeasureResponse>(`${NetatmoApiClient.NETATMO_BASE_URL}/api/getmeasure`, {
+    const res = await this.wrapAxiosErrors('get measure', () =>
+      this.http.get<GetMeasureResponse>(`${NetatmoApiClient.NETATMO_BASE_URL}/api/getmeasure`, {
         params: payload,
-      });
-      return MeasurementsMapper.dtoToDomain(res.data.body, module.capabilities);
-    } catch (e) {
-      this.logError(e);
-      throw new Error();
-    }
+      })
+    );
+    return MeasurementsMapper.dtoToDomain(res.data.body, module.capabilities);
   }
 
-  private logError(e: AxiosError): void {
-    this.logger.error(e.message);
-    if (e.response) {
-      this.logger.error('Response: ' + JSON.stringify(e.response.data, undefined, 2));
+  private async wrapAxiosErrors<T>(
+    action: string,
+    axiosCall: () => Promise<AxiosResponse<T>>
+  ): Promise<AxiosResponse<T>> {
+    try {
+      return await axiosCall();
+    } catch (e) {
+      if (axios.isAxiosError(e)) {
+        if (e.response) {
+          const msg = `Got error response for '${action}'`;
+          this.logger.error(msg);
+          throw new NetatmoApiError(msg, e.response.status, e.response.data, e);
+        } else if (e.request) {
+          const msg = `No response received for '${action}'`;
+          this.logger.error(msg);
+          throw new NetatmoApiError(msg, 500, e.request, e);
+        } else {
+          const msg = `Error setting up the request for '${action}'`;
+          this.logger.error(msg);
+          throw new NetatmoApiError(msg, 500, e.message, e);
+        }
+      } else {
+        const msg = `Unknown error: ${e}`;
+        this.logger.error(msg);
+        throw new Error(msg);
+      }
     }
   }
 }
