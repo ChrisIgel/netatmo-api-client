@@ -1,7 +1,7 @@
 {
   "name": "netatmo-api-client",
   "description": "Client for the Netatmo API",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "license": "MIT",
   "author": "Chris Igel",
   "repository": {
