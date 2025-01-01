@@ -12,7 +12,7 @@
     "Netatmo"
   ],
   "engines": {
-    "node": ">=12"
+    "node": ">=22"
   },
   "scripts": {
     "format": "prettier --write \"src/**/*.ts\"",
@@ -31,15 +31,15 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "axios": "^0.19.2"
+    "axios": "^1.7.9"
   },
   "devDependencies": {
-    "@types/node": "^13.11.0",
+    "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "prettier": "^2.0.2",
-    "typescript": "^3.8.3"
+    "typescript": "^5.7.2"
   }
 }
