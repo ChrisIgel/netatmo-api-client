@@ -9,6 +9,7 @@ import { NetatmoApiError } from './errors/api-error';
 import { DefaultLogger, Logger } from './logger';
 import { MeasurementsMapper } from './measurements-mapper';
 import { StationDataMapper } from './station-data-mapper';
+import * as https from 'https';
 
 export class NetatmoApiClient {
   private static readonly NETATMO_BASE_URL = 'https://api.netatmo.com';
@@ -18,13 +19,19 @@ export class NetatmoApiClient {
   private accessToken!: string;
   private refreshToken!: string;
   private expirationTimestamp!: number;
+  private tokenRefreshRequestCount = 0;
 
   constructor(
     private readonly clientId: string,
     private readonly clientSecret: string,
+    private tokenExpirationThresholdInMinutes: number = 1,
     private readonly logger: Logger = new DefaultLogger()
   ) {
-    this.http = axios.create();
+    this.http = axios.create({
+      httpsAgent: new https.Agent({
+        ALPNProtocols: ['h2', 'http/1.1']
+      })
+    });
     this.http.interceptors.request.use((req) => {
       req.headers['Authorization'] = `Bearer ${this.accessToken}`;
       return req;
@@ -51,8 +58,8 @@ export class NetatmoApiClient {
 
   public async refreshTokens(): Promise<void> {
     // refresh the token 1 minute early to be safe
-    const expirationTimestampMinusOneMinute = this.expirationTimestamp - 60 * 1000;
-    const tokenIsAboutToExpire = Date.now() > expirationTimestampMinusOneMinute;
+    const expirationTimestampMinusThreshold = this.expirationTimestamp - 60 * 1000 * this.tokenExpirationThresholdInMinutes;
+    const tokenIsAboutToExpire = Date.now() > expirationTimestampMinusThreshold;
 
     if (tokenIsAboutToExpire) {
       this.logger.log('Refreshing token...');
@@ -78,8 +85,8 @@ export class NetatmoApiClient {
       this.saveTokens(res.data);
     } else {
       this.logger.log(
-        `Token is still valid: "${new Date().toLocaleString()}" (now) is after "${new Date(
-          expirationTimestampMinusOneMinute
+        `Token is still valid: "${new Date().toLocaleString()}" (now) is before "${new Date(
+          expirationTimestampMinusThreshold
         ).toLocaleString()} (token expiry)"`
       );
     }
@@ -96,7 +103,8 @@ export class NetatmoApiClient {
   public async getStationData(favorites = false): Promise<StationData> {
     this.logger.log('Requesting station data');
     await this.refreshTokens();
-
+    this.tokenRefreshRequestCount++;
+    this.logger.log(`Request count: ${this.tokenRefreshRequestCount}`);
     const res = await this.wrapAxiosErrors('get station data', () =>
       this.http.get<GetStationDataResponse>(`${NetatmoApiClient.NETATMO_BASE_URL}/api/getstationsdata`, {
         params: {
@@ -120,7 +128,8 @@ export class NetatmoApiClient {
     this.logger.log(
       `Requesting measure for station ${stationId} and module ${module.id} from ${dateBegin} until ${dateEnd}`
     );
-
+    this.tokenRefreshRequestCount++;
+    this.logger.log(`Request count: ${this.tokenRefreshRequestCount}`);
     await this.refreshTokens();
 
     const payload = {
@@ -152,6 +161,7 @@ export class NetatmoApiClient {
     try {
       return await axiosCall();
     } catch (e) {
+      this.logger.log(`Request count: ${this.tokenRefreshRequestCount}`);
       if (axios.isAxiosError(e)) {
         if (e.response) {
           const msg = `Got error response for '${action}'`;
